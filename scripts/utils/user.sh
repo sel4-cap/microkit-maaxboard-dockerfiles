@@ -7,6 +7,12 @@
 
 set -exuo pipefail
 
+# Source common functions with funky bash, as per: https://stackoverflow.com/a/12694189
+DIR="${BASH_SOURCE%/*}"
+test -d "$DIR" || DIR=$PWD
+# shellcheck source=utils/common.sh
+. "$DIR/utils/common.sh"
+
 ####################################################################
 # Setup user and groups for inside the container
 
@@ -49,6 +55,18 @@ passwd -d "${UNAME}"
 
 
 ####################################################################
+# Set up locales.
+echo "${LOCAL_LANG} UTF-8" | as_root tee /etc/locale.gen > /dev/null
+as_root dpkg-reconfigure --frontend=noninteractive locales
+echo "LANG=${LOCAL_LANG}" | as_root tee -a /etc/default/locale > /dev/null
+
+# Select locale.
+cat << EOF >> "/etc/profile.d/010-locale.sh"
+export LANG="${LOCAL_LANG}"
+EOF
+
+
+####################################################################
 # Setup sudo for inside the container
 
 # Whenever someone uses sudo, be annoying and remind them that
@@ -62,7 +80,7 @@ cat << EOF > /etc/sudoers.lecture
 ##################### Warning! #####################################
 This is an ephemeral docker container! You can do things to it using
 sudo, but when you exit, changes made outside of the /host directory
-will be lost.
+or home areas will be lost.
 If you want your changes to be permanent, add them to the
     extras.dockerfile
 in the seL4-CAmkES-L4v dockerfiles repo.
@@ -70,22 +88,20 @@ in the seL4-CAmkES-L4v dockerfiles repo.
 
 EOF
 
-
 ####################################################################
-# Setup home dir
+# Setup /etc/profile.d
 
-# NOTE: the user's home directory is stored in a docker volume.
-#       (normally called $UNAME_home on the host)
-#       That implies that these instructions will only run if said
-#       docker volume does not exist. Therefore, if the below
-#       changes, users will only see the effect if they run:
-#          docker volume rm $USER_home
+# Default stamps.
+: "${STAMP_SEL4:=absent}"
+: "${STAMP_CAMKES:=absent}"
+: "${STAMP_MICROKIT:=absent}"
+: "${STAMP_MAAXBOARD:=absent}"
+: "${STAMP_L4V:=absent}"
 
-mkdir "/home/${UNAME}"
-
-# Put in some branding
+# Put in some branding and provenance.
 # shellcheck disable=SC2129
-cat << EOF >> "/home/${UNAME}/.bashrc"
+cat << EOF >> "/etc/profile.d/500-greeting.sh"
+echo '============================================================'
 echo '___                                   '
 echo ' |   _      _ |_      _   _ |_ |_     '
 echo ' |  |  |_| _) |_ \)/ (_) |  |_ | ) \/ '
@@ -95,25 +111,47 @@ echo '(_      _ |_  _  _   _                '
 echo '__) \/ _) |_ (- ||| _)                '
 echo '    /                                 '
 echo 'Hello, welcome to the seL4/CAmkES/L4v docker build environment'
+echo ''
+echo '------------------------------------------------------------'
+echo 'Provenance:'
+echo '------------------------------------------------------------'
+echo 'Primary source Trustworthy Systems group:'
+echo 'Organisation: https://github.com/seL4'
+echo 'Images:       https://hub.docker.com/r/trustworthysystems'
+echo 'Repository:   https://github.com/seL4/seL4-CAmkES-L4v-dockerfiles'
+echo ''
+echo 'Secondary fork for Capgemini Build Environment as follows:'
+echo 'Organisation: https://github.com/sel4-cap'
+echo 'Images:       https://github.com/orgs/sel4-cap/packages'
+echo 'Repository:   https://github.com/sel4-cap/microkit-maaxboard-dockerfiles'
+echo 'Maintainer:   https://github.com/Bill-James-Ellis'
+echo ''
+echo 'Stamps (Standard Images):'
+echo 'STAMP_SEL4:      ${STAMP_SEL4}'
+echo 'STAMP_CAMKES:    ${STAMP_CAMKES}'
+echo 'STAMP_MICROKIT:  ${STAMP_MICROKIT}'
+echo 'STAMP_MAAXBOARD: ${STAMP_MAAXBOARD}'
+echo 'STAMP_L4V:       ${STAMP_L4V}'
+echo '============================================================'
 EOF
 
-# This is a small hack. When the dockerfiles are building, many of
-# the env things are set into the .bashrc of root (since they're
-# building as the root user). Here we just copy all those declarations
-# and put them in this user's .bashrc.
-# This can be an issue with regard to the NOTE above, about docker
-# volumes.
-grep "export" /root/.bashrc >> "/home/${UNAME}/.bashrc"
-
-# Note that this block does not do parameter expansion, so will be
-# copied verbatim into the user's .bashrc.
-# We use this to ensure they have the repo program in their path,
-# and to ensure they start in the /host dir (aka, their own file
-# path)
-cat << 'EOF' >> "/home/${UNAME}/.bashrc"
-export PATH=/scripts/repo:$PATH
+# Drop the user into host.
+# shellcheck disable=SC2129
+cat << EOF >> "/etc/profile.d/500-start_in_host.sh"
 cd /host
 EOF
+
+####################################################################
+# Setup home dir
+
+# NOTE: the user's home directory is stored in a docker volume.
+#       (normally called $UNAME-home on the host)
+#       That implies that these instructions will only run if said
+#       docker volume does not exist. Therefore, if the below
+#       changes, users will only see the effect if they run:
+#          docker volume rm $USER-home
+
+mkdir "/home/${UNAME}"
 
 # Set an appropriate chown setting, based on if the group setup
 # went OK

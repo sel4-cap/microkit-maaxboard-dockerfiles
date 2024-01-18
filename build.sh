@@ -10,7 +10,7 @@ set -ef
 ############################################
 # env setup
 
-: "${DOCKERHUB:=trustworthysystems/}"
+: "${DOCKERHUB:=ghcr.io/sel4-cap/}"
 
 # Base images
 : "${DEBIAN_IMG:=debian:bullseye-20210816-slim}"
@@ -19,6 +19,8 @@ set -ef
 # Core images
 : "${SEL4_IMG:=sel4}"
 : "${CAMKES_IMG:=camkes}"
+: "${MICROKIT_IMG:=microkit}"
+: "${MAAXBOARD_IMG:=maaxboard}"
 : "${L4V_IMG:=l4v}"
 
 # Allow override of which 'version' (aka tag) of an image to pull in
@@ -58,10 +60,10 @@ build_internal_image()
     shift 3  # any params left over are just injected into the docker command
              # presumably as flags
 
-
     build_args_to_pass_to_docker=$(echo "$build_args" | grep "=" | awk '{print "--build-arg", $1}')
     # shellcheck disable=SC2086
     $DOCKER_BUILD $DOCKER_FLAGS \
+        --build-arg STAMP="$(date)" \
         --build-arg BASE_IMG="$base_img" \
         --build-arg SCM="$SCM" \
         $build_args_to_pass_to_docker \
@@ -92,13 +94,13 @@ apply_software_to_image()
     # NOTE: it's OK to supply docker build-args that aren't requested in the Dockerfile
 
     $DOCKER_BUILD $DOCKER_FLAGS \
-		--build-arg BASE_BUILDER_IMG="$DOCKERHUB$prebuilt_img" \
-		--build-arg BASE_IMG="$DOCKERHUB$orig_img" \
+        --build-arg BASE_BUILDER_IMG="$DOCKERHUB$prebuilt_img" \
+        --build-arg BASE_IMG="$DOCKERHUB$orig_img" \
         --build-arg SCM="$SCM" \
-		-f "$DOCKERFILE_DIR/$builder_dfile" \
-		-t "$DOCKERHUB$new_img" \
+        -f "$DOCKERFILE_DIR/$builder_dfile" \
+        -t "$DOCKERHUB$new_img" \
         "$@" \
-		.
+        .
 }
 ############################################
 
@@ -117,6 +119,16 @@ build_sel4()
 build_camkes()
 {
     build_image "$SEL4_IMG$IMG_POSTFIX" camkes.Dockerfile "$CAMKES_IMG"
+}
+
+build_microkit()
+{
+    build_image "$CAMKES_IMG$IMG_POSTFIX" microkit.Dockerfile "$MICROKIT_IMG"
+}
+
+build_maaxboard()
+{
+    build_image "$MICROKIT_IMG$IMG_POSTFIX" maaxboard.Dockerfile "$MAAXBOARD_IMG"
 }
 
 build_l4v()
@@ -165,14 +177,13 @@ show_help()
                             | sort \
                             | tr "\n" "|")
     cat <<EOF
-    build.sh [-r] [-v] [-p] -b [sel4|camkes|l4v] -s [$available_software] -s ... -e MAKE_CACHES=no -e ...
+    build.sh [-r] [-v] [-p] -b [sel4|camkes|microkit|maaxboard|l4v] -s [$available_software] -s ... -e MAKE_CACHES=no -e ...
 
      -r     Rebuild docker images (don't use the docker cache)
      -v     Verbose mode
      -s     Software packages to install on top of the base image. Use -s for each package.
      -e     Build arguments (NAME=VALUE) to docker build. Use a -e for each build arg.
-     -p     Pull base image first. Rather than build the base image,
-            get it from the web first
+     -p     Pull base image first. Rather than build the base image, get it from the web first.
 
     Sneaky hints:
      - To build 'prebuilt' images, you can run:
@@ -252,6 +263,3 @@ do
         base_img_postfix="" # only apply the postfix in the first loop
     fi
 done
-
-
-

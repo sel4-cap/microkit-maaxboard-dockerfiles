@@ -13,6 +13,7 @@ ARG UID
 ARG UNAME
 ARG GID
 ARG GROUP
+ARG LOCAL_LANG
 
 COPY scripts/utils/user.sh /tmp/
 

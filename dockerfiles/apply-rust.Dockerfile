@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 #
 
-ARG BASE_IMG=trustworthysystems/camkes
+ARG BASE_IMG=ghcr.io/sel4-cap/camkes
 # hadolint ignore=DL3006
 FROM $BASE_IMG
 LABEL ORGANISATION="Trustworthy Systems"
@@ -19,7 +19,7 @@ ARG CARGO_HOME="/etc/cargo"
 
 ARG SCRIPT=apply-rust.sh
 
-COPY scripts /tmp/
+COPY scripts/${SCRIPT} /tmp/${SCRIPT}
 
 RUN /bin/bash /tmp/${SCRIPT} \
     && apt-get clean autoclean \

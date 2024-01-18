@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: BSD-2-Clause
 #
 
-ARG BASE_BUILDER_IMG=trustworthysystems/prebuild-cakeml
-ARG BASE_IMG=trustworthysystems/sel4
+ARG BASE_BUILDER_IMG=ghcr.io/sel4-cap/prebuild-cakeml
+ARG BASE_IMG=ghcr.io/sel4-cap/sel4
 
 # hadolint ignore=DL3006
 FROM $BASE_BUILDER_IMG as builder

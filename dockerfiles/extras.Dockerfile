@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 #
 
-ARG USER_BASE_IMG=trustworthysystems/sel4
+ARG USER_BASE_IMG=ghcr.io/sel4-cap/sel4
 # hadolint ignore=DL3006
 FROM $USER_BASE_IMG
 

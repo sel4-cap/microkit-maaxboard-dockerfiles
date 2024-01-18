@@ -15,6 +15,7 @@ It is recommended you add yourself to the docker group, so you can run docker co
 
 
 ## Quick start
+
 To get a running build environment for sel4 and camkes, run:
 
     git clone https://github.com/SEL4PROJ/seL4-CAmkES-L4v-dockerfiles.git
@@ -25,9 +26,15 @@ Or to map a particular directory to the /host dir in the container:
 
     make user HOST_DIR=/scratch/sel4_stuff  # as an example
 
+Your home directory, plus the isabelle home directory where relevant, is
+persisted within a docker volume.
 
 ## What is this?
-This repository contains dockerfiles which map out the dependencies for seL4, CAmkES, and L4v. It also contains some infrastructure to allow people to use the containers in a useful way.
+This repository contains dockerfiles which map out the dependencies for seL4, CAmkES, microkit, microkit plus maaxboard, and L4v. It also contains some infrastructure to allow people to use the containers in a useful way.
+
+Architecture:
+* Generic Images are built via: "build.sh". These Images are as generic as possible, with no user or region specific aspects.
+* Specific Images are built, and launched as Containers, via: "make" (Makefile). These Images (and Containers), tailor the Generic Images, with user and region specific aspects.
 
 These dockerfiles are used as the basis for regression testing in the Trustworthy Systems group, and hence should represent a well tested and up to date environment
 
@@ -53,6 +60,15 @@ The container will map the current working directory from the host to /host with
 If you want to map a different folder, you can specify it on the command line:
 
     make user_sel4 HOST_DIR=/scratch/sel4_stuff
+
+Within the container, your home directory, plus the isabelle home directory,
+is framed within a docker volume, for persistence. On first launch, initial
+home directories are prepared. These initial home directories are very empty.
+Where correct usage of the container requires some environment configuration,
+it is placed within either /etc/profile or /etc/profile.d, for default
+automated inclusion. Managing essential container configuration outside the
+home directory docker volume, permits effective use of the same home directory
+docker volume across multiple, externally maintainable, containers.
 
 You can also specify commands to be executed inside the container by using `EXEC`:
 

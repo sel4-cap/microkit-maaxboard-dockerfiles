@@ -6,7 +6,7 @@
 
 # Docker-compatible image tool to use (could also be 'podman')
 DOCKER ?= docker
-DOCKERHUB ?= trustworthysystems/
+DOCKERHUB ?= ghcr.io/sel4-cap/
 
 # Base images
 DEBIAN_IMG ?= debian:bullseye
@@ -15,6 +15,8 @@ BASETOOLS_IMG ?= base_tools
 # Core images
 SEL4_IMG ?= sel4
 CAMKES_IMG ?= camkes
+MICROKIT_IMG ?= microkit
+MAAXBOARD_IMG ?= maaxboard
 L4V_IMG ?= l4v
 
 # Extra feature images
@@ -42,7 +44,7 @@ DOCKER_VOLUME_ISABELLE ?= $(shell whoami)-isabelle
 DOCKER_BUILD ?= $(DOCKER) build
 DOCKER_FLAGS ?= --force-rm=true
 ifndef EXEC
-	EXEC := bash
+	EXEC := bash --login
 	DOCKER_RUN_FLAGS += -it
 endif
 
@@ -76,11 +78,56 @@ EXTRA_DOCKER_RUN_ARGS   := $(EXTRA_DOCKER_IS_NOT_PODMAN_RUN_ARGS) \
 # once, and then pull them in as needed.
 CAKEML_BASE_DATE ?= 2019_01_13
 
+################################################
+# Default to showing usage.
+################################################
+.PHONY: usage
+usage: 
+	@echo "usage: make <target> <options>"
+	@echo ""
+	@echo "=============================="
+	@echo "Use:"
+	@echo "=============================="
+	@echo "Launch Docker image for use."
+	@echo "<target> as one off:"
+	@echo "user_sel4"
+	@echo "user_camkes"
+	@echo ""
+	@echo ""
+	@echo ""
+	@echo "HOST_DIR=/home/bellis/l/HOST_DIR"
+	@echo ""
+	@echo ""
+	@echo ""
+	@echo "=============================="
+	@echo "Pull:"
+	@echo "=============================="
+	@echo "Pull images (latest tag) from GitHub Packages into Docker."
+	@echo "<target> as one off:"
+	@echo "pull_sel4_image"
+	@echo "pull_camkes_image"
+	@echo "pull_microkit_image"
+	@echo "pull_maaxboard_image"
+	@echo "pull_all_images (all of the above)"
+	@echo ""
+	@echo "=============================="
+	@echo "Push:"
+	@echo "=============================="
+	@echo "Push images (latest tag) from Docker into GitHub Packages."
+	@echo "<target> as one off:"
+	@echo "push_sel4_image"
+	@echo "push_camkes_image"
+	@echo "push_microkit_image"
+	@echo "push_maaxboard_image"
+	@echo "push_l4v_image"
+	@echo "push_all_images (all of the above)"
+
+
+
 
 ################################################
-# Making docker easier to use by mapping current
-# user into a container.
-#################################################
+# Pull images.
+################################################
 .PHONY: pull_sel4_image
 pull_sel4_image:
 	$(DOCKER) pull $(DOCKERHUB)$(SEL4_IMG)
@@ -89,23 +136,57 @@ pull_sel4_image:
 pull_camkes_image:
 	$(DOCKER) pull $(DOCKERHUB)$(CAMKES_IMG)
 
+.PHONY: pull_microkit_image
+pull_microkit_image:
+	$(DOCKER) pull $(DOCKERHUB)$(MICROKIT_IMG)
+
+.PHONY: pull_maaxboard_image
+pull_maaxboard_image:
+	$(DOCKER) pull $(DOCKERHUB)$(MAAXBOARD_IMG)
+
 .PHONY: pull_l4v_image
 pull_l4v_image:
 	$(DOCKER) pull $(DOCKERHUB)$(L4V_IMG)
 
-.PHONY: pull_images_from_dockerhub
-pull_images_from_dockerhub: pull_sel4_image pull_camkes_image pull_l4v_image
+.PHONY: pull_all_images
+pull_all_images: pull_sel4_image pull_camkes_image pull_microkit_image pull_maaxboard_image pull_l4v_image
 
+################################################
+# Push images.
+################################################
+.PHONY: push_sel4_image
+push_sel4_image:
+	$(DOCKER) push $(DOCKERHUB)$(SEL4_IMG)
+
+.PHONY: push_camkes_image
+push_camkes_image:
+	$(DOCKER) push $(DOCKERHUB)$(CAMKES_IMG)
+
+.PHONY: push_microkit_image
+push_microkit_image:
+	$(DOCKER) push $(DOCKERHUB)$(MICROKIT_IMG)
+
+.PHONY: push_maaxboard_image
+push_maaxboard_image:
+	$(DOCKER) push $(DOCKERHUB)$(MAAXBOARD_IMG)
+
+.PHONY: push_l4v_image
+push_l4v_image:
+	$(DOCKER) push $(DOCKERHUB)$(L4V_IMG)
+
+.PHONY: push_all_images
+push_all_images: push_sel4_image push_camkes_image push_microkit_image push_maaxboard_image push_l4v_image
 
 ################################################
 # Making docker easier to use by mapping current
 # user into a container.
-#################################################
-.PHONY: user
-user: user_camkes  # use CAmkES as the default
+################################################
 
 .PHONY: user_sel4
 user_sel4: build_user_sel4 user_run
+
+.PHONY: user_camkes
+user_camkes: user_camkes
 
 .PHONY: user_sel4-riscv
 user_sel4-riscv: build_user_sel4-riscv user_run
@@ -113,6 +194,14 @@ user_sel4-riscv: build_user_sel4-riscv user_run
 .PHONY: user_camkes
 user_camkes: EXTRA_DOCKER_RUN_ARGS +=  --group-add stack
 user_camkes: build_user_camkes user_run
+
+.PHONY: user_microkit
+user_microkit: EXTRA_DOCKER_RUN_ARGS +=  --group-add stack
+user_microkit: build_user_microkit user_run
+
+.PHONY: user_maaxboard
+user_maaxboard: EXTRA_DOCKER_RUN_ARGS +=  --group-add stack
+user_maaxboard: build_user_maaxboard user_run
 
 .PHONY: user_camkes-riscv
 user_camkes-riscv: EXTRA_DOCKER_RUN_ARGS +=  --group-add stack
@@ -182,12 +271,17 @@ build_user: run_checks
 		--build-arg=UID=$(shell id -u) \
 		--build-arg=GID=$(shell id -g) \
 		--build-arg=GROUP=$(shell id -gn) \
+		--build-arg=LOCAL_LANG=$(LANG) \
 		-f dockerfiles/user.Dockerfile \
 		-t $(USER_IMG) .
 build_user_sel4: USER_BASE_IMG = $(SEL4_IMG)
 build_user_sel4: build_user
 build_user_camkes: USER_BASE_IMG = $(CAMKES_IMG)
 build_user_camkes: build_user
+build_user_microkit: USER_BASE_IMG = $(MICROKIT_IMG)
+build_user_microkit: build_user
+build_user_maaxboard: USER_BASE_IMG = $(MAAXBOARD_IMG)
+build_user_maaxboard: build_user
 build_user_l4v: USER_BASE_IMG = $(L4V_IMG)
 build_user_l4v: build_user
 
@@ -207,6 +301,8 @@ clean_images:
 	-$(DOCKER) rmi $(USER_IMG)
 	-$(DOCKER) rmi extras
 	-$(DOCKER) rmi $(DOCKERHUB)$(L4V_IMG)
+	-$(DOCKER) rmi $(DOCKERHUB)$(MAAXBOARD_IMG)
+	-$(DOCKER) rmi $(DOCKERHUB)$(MICROKIT_IMG)
 	-$(DOCKER) rmi $(DOCKERHUB)$(CAMKES_IMG)
 	-$(DOCKER) rmi $(DOCKERHUB)$(SEL4_IMG)
 

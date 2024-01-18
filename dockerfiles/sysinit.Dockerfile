@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 #
 
-ARG BASE_IMG=trustworthysystems/camkes
+ARG BASE_IMG=ghcr.io/sel4-cap/camkes
 # hadolint ignore=DL3006
 FROM $BASE_IMG
 
@@ -29,7 +29,7 @@ ARG CAKEML_REMOTE=https://bitbucket.ts.data61.csiro.au/scm/~spr074/cakeml.git
 
 ARG SCRIPT=cakeml.sh
 
-COPY scripts /tmp/
+COPY scripts/${SCRIPT} /tmp/${SCRIPT}
 
 RUN /bin/bash /tmp/${SCRIPT} \
     && apt-get clean autoclean \

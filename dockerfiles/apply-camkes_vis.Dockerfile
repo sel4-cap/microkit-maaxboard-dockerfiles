@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 #
 
-ARG BASE_IMG=trustworthysystems/camkes
+ARG BASE_IMG=ghcr.io/sel4-cap/camkes
 # hadolint ignore=DL3006
 FROM $BASE_IMG
 
@@ -20,7 +20,7 @@ ARG MAKE_CACHES=yes
 
 ARG SCRIPT=apply-camkes_vis.sh
 
-COPY scripts /tmp/
+COPY scripts/${SCRIPT} /tmp/${SCRIPT}
 
 RUN /bin/bash /tmp/${SCRIPT} \
     && apt-get clean autoclean \

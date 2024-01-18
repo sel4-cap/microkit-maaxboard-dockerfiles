@@ -14,7 +14,7 @@ test -d "$DIR" || DIR=$PWD
 . "$DIR/utils/common.sh"
 
 # General usage scripts location
-: "${SCRIPTS_DIR:=$HOME/bin}"
+: "${UTIL_DIR:=$HOME/bin}"
 
 # Repo location
 : "${REPO_DIR:=$HOME/bin}"
@@ -101,11 +101,10 @@ if [ "$DESKTOP_MACHINE" = "no" ] ; then
     as_root ln -s /usr/bin/hg /usr/local/bin/hg
 fi
 
-try_nonroot_first mkdir -p "$SCRIPTS_DIR" || chown_dir_to_user "$SCRIPTS_DIR"
-
-# Install Google's repo
+# Skeleton for common user material.
+try_nonroot_first mkdir -p "$UTIL_DIR" || chown_dir_to_user "$UTIL_DIR"
 try_nonroot_first mkdir -p "$REPO_DIR" || chown_dir_to_user "$REPO_DIR"
-wget -O - https://storage.googleapis.com/git-repo-downloads/repo > "$REPO_DIR/repo"
+
+# Install Google's repo.
+wget -O - "https://storage.googleapis.com/git-repo-downloads/repo" > "$REPO_DIR/repo"
 chmod a+x "$REPO_DIR/repo"
-echo "export PATH=\$PATH:$REPO_DIR" >> "$HOME/.bashrc"
-export PATH=$PATH:$REPO_DIR  # make repo available ASAP

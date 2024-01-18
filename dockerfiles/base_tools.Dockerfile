@@ -18,12 +18,13 @@ ARG USE_DEBIAN_SNAPSHOT=yes
 ARG SNAPSHOT_DATE
 ARG MAKE_CACHES=yes
 
-ARG SCRIPTS_DIR="/scripts"
-ARG REPO_DIR="${SCRIPTS_DIR}/repo"
+ARG UTIL_DIR="/util"
+ARG REPO_DIR="${COMMON_DIR}/repo"
 
 ARG SCRIPT=base_tools.sh
 
-COPY scripts /tmp/
+COPY scripts/utils/common.sh /tmp/utils/common.sh
+COPY scripts/${SCRIPT} /tmp/${SCRIPT}
 
 # ip4v forces curl to use ipv4. Weirdness happens with docker and ipv6.
 RUN echo ipv4 >> ~/.curlrc \
@@ -32,5 +33,5 @@ RUN echo ipv4 >> ~/.curlrc \
     && apt-get autoremove --purge --yes \
     && rm -rf /var/lib/apt/lists/*
 
-# ENV variables are available to containers after the build stage
+# ENV variables are available to containers after the build stage.
 ENV PATH "${PATH}:${REPO_DIR}"

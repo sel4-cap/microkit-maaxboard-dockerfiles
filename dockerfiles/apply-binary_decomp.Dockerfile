@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 #
 
-ARG BASE_IMG=trustworthysystems/sel4
+ARG BASE_IMG=ghcr.io/sel4-cap/sel4
 # hadolint ignore=DL3006
 FROM $BASE_IMG
 
@@ -21,7 +21,7 @@ ARG SMTSOLVERS_DIR="/smtsolvers"
 
 ARG SCRIPT=apply-binary_decomp.sh
 
-COPY scripts /tmp/
+COPY scripts/${SCRIPT} /tmp/${SCRIPT}
 
 RUN /bin/bash "/tmp/${SCRIPT}" \
     && apt-get clean autoclean \
