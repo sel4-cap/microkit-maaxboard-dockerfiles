@@ -15,7 +15,7 @@ ARG GID
 ARG GROUP
 ARG LOCAL_LANG
 
-COPY scripts/utils/user.sh /tmp/
+COPY scripts/user.sh /tmp/
 
 RUN /bin/bash /tmp/user.sh
 

@@ -17,28 +17,14 @@ SEL4_IMG ?= sel4
 CAMKES_IMG ?= camkes
 MICROKIT_IMG ?= microkit
 MAAXBOARD_IMG ?= maaxboard
-L4V_IMG ?= l4v
-
-# Extra feature images
-RUST_IMG ?= sel4-rust
-CAMKES_VIS_IMG ?= camkes-vis
-PREBUILT_CAKEML_IMG ?= prebuilt_cakeml
-BINARY_DECOMP_IMG ?= binary_decomp
-
-# Test images
-SEL4_TST_IMG ?= sel4_test
-CAMKES_TST_IMG ?= camkes_test
-L4V_TST_IMG ?= l4v_test
 
 # Interactive images
 EXTRAS_IMG := extras
 USER_IMG := user_img-$(shell whoami)
-USER_BASE_IMG := $(SEL4_IMG)
 HOST_DIR ?= $(shell pwd)
 
 # Volumes
 DOCKER_VOLUME_HOME ?= $(shell whoami)-home
-DOCKER_VOLUME_ISABELLE ?= $(shell whoami)-isabelle
 
 # Extra vars
 DOCKER_BUILD ?= $(DOCKER) build
@@ -50,33 +36,8 @@ endif
 
 ETC_LOCALTIME := $(realpath /etc/localtime)
 
-# Extra arguments to pass to `docker run` if it is or is not `podman` - these
-# are constructed in a very verbose way to be obvious about why we want to do
-# certain things under regular `docker` vs` podman`
-# Note that `docker --version` will not say "podman" if symlinked.
-CHECK_DOCKER_IS_PODMAN  := $(DOCKER) --help 2>&1 | grep -q podman
-IF_DOCKER_IS_PODMAN     := $(CHECK_DOCKER_IS_PODMAN) && echo
-IF_DOCKER_IS_NOT_PODMAN := $(CHECK_DOCKER_IS_PODMAN) || echo
-# If we're not `podman` then we'll use the `-u` and `-g` options to set the
-# user in the container
-EXTRA_DOCKER_IS_NOT_PODMAN_RUN_ARGS := $(shell $(IF_DOCKER_IS_NOT_PODMAN) \
-    "-u $(shell id -u):$(shell id -g)" \
-)
-# If we are `podman` then we'll prefer to use `--userns=keep-id` to set up and
-# use the appropriate sub{u,g}id mappings rather than end up using UID 0 in the
-# container
-EXTRA_DOCKER_IS_PODMAN_RUN_ARGS     := $(shell $(IF_DOCKER_IS_PODMAN) \
-    "--userns=keep-id" \
-)
-# And we'll jam them into one variable to reduce noise in `docker run` lines
-EXTRA_DOCKER_RUN_ARGS   := $(EXTRA_DOCKER_IS_NOT_PODMAN_RUN_ARGS) \
-                           $(EXTRA_DOCKER_IS_PODMAN_RUN_ARGS)
-
-###########################
-# For 'prebuilt' images, the idea is that for things that take a long
-# time to build, and don't change very much, we should build them
-# once, and then pull them in as needed.
-CAKEML_BASE_DATE ?= 2019_01_13
+# User in the container.
+EXTRA_DOCKER_RUN_ARGS := -u $(shell id -u):$(shell id -g)
 
 ################################################
 # Default to showing usage.
@@ -92,12 +53,11 @@ usage:
 	@echo "<target> as one off:"
 	@echo "user_sel4"
 	@echo "user_camkes"
+	@echo "user_microkit"
+	@echo "user_maaxboard"
 	@echo ""
-	@echo ""
-	@echo ""
-	@echo "HOST_DIR=/home/bellis/l/HOST_DIR"
-	@echo ""
-	@echo ""
+	@echo "<options> as one or more:"
+	@echo "HOST_DIR=<path> (available in container as: /host)"
 	@echo ""
 	@echo "=============================="
 	@echo "Pull:"
@@ -121,9 +81,22 @@ usage:
 	@echo "push_maaxboard_image"
 	@echo "push_l4v_image"
 	@echo "push_all_images (all of the above)"
-
-
-
+	@echo ""
+	@echo "=============================="
+	@echo "Clean:"
+	@echo "=============================="
+	@echo "Clean images from Docker."
+	@echo "<target> as one off:"
+	@echo "clean_home_data"
+	@echo "clean_all_datas"
+	@echo "clean_user_image"
+	@echo "clean_extras_image"
+	@echo "clean_sel4_image"
+	@echo "clean_camkes_image"
+	@echo "clean_microkit_image"
+	@echo "clean_maaxboard_image"
+	@echo "clean_all_images"
+	@echo "clean_all"
 
 ################################################
 # Pull images.
@@ -144,12 +117,8 @@ pull_microkit_image:
 pull_maaxboard_image:
 	$(DOCKER) pull $(DOCKERHUB)$(MAAXBOARD_IMG)
 
-.PHONY: pull_l4v_image
-pull_l4v_image:
-	$(DOCKER) pull $(DOCKERHUB)$(L4V_IMG)
-
 .PHONY: pull_all_images
-pull_all_images: pull_sel4_image pull_camkes_image pull_microkit_image pull_maaxboard_image pull_l4v_image
+pull_all_images: pull_sel4_image pull_camkes_image pull_microkit_image pull_maaxboard_image
 
 ################################################
 # Push images.
@@ -170,26 +139,15 @@ push_microkit_image:
 push_maaxboard_image:
 	$(DOCKER) push $(DOCKERHUB)$(MAAXBOARD_IMG)
 
-.PHONY: push_l4v_image
-push_l4v_image:
-	$(DOCKER) push $(DOCKERHUB)$(L4V_IMG)
-
 .PHONY: push_all_images
-push_all_images: push_sel4_image push_camkes_image push_microkit_image push_maaxboard_image push_l4v_image
+push_all_images: push_sel4_image push_camkes_image push_microkit_image push_maaxboard_image
 
 ################################################
 # Making docker easier to use by mapping current
 # user into a container.
 ################################################
-
 .PHONY: user_sel4
 user_sel4: build_user_sel4 user_run
-
-.PHONY: user_camkes
-user_camkes: user_camkes
-
-.PHONY: user_sel4-riscv
-user_sel4-riscv: build_user_sel4-riscv user_run
 
 .PHONY: user_camkes
 user_camkes: EXTRA_DOCKER_RUN_ARGS +=  --group-add stack
@@ -202,18 +160,6 @@ user_microkit: build_user_microkit user_run
 .PHONY: user_maaxboard
 user_maaxboard: EXTRA_DOCKER_RUN_ARGS +=  --group-add stack
 user_maaxboard: build_user_maaxboard user_run
-
-.PHONY: user_camkes-riscv
-user_camkes-riscv: EXTRA_DOCKER_RUN_ARGS +=  --group-add stack
-user_camkes-riscv: build_user_camkes-riscv user_run
-
-.PHONY: user_l4v
-user_l4v: EXTRA_DOCKER_RUN_ARGS +=  --group-add stack
-user_l4v: build_user_l4v user_run_l4v
-
-.PHONY: user_l4v-riscv
-user_l4v-riscv: EXTRA_DOCKER_RUN_ARGS +=  --group-add stack
-user_l4v-riscv: build_user_l4v-riscv user_run_l4v
 
 .PHONY: user_run
 user_run:
@@ -228,23 +174,6 @@ user_run:
 		-v $(ETC_LOCALTIME):/etc/localtime:ro \
 		$(USER_IMG) $(EXEC)
 
-.PHONY: user_run_l4v
-user_run_l4v:
-	$(DOCKER) run \
-		$(DOCKER_RUN_FLAGS) \
-		--hostname in-container \
-		--rm \
-		$(EXTRA_DOCKER_RUN_ARGS) \
-		-v $(HOST_DIR):/host:z \
-		-v $(DOCKER_VOLUME_HOME):/home/$(shell whoami) \
-		-v $(DOCKER_VOLUME_ISABELLE):/isabelle \
-		--group-add sudo \
-		-v $(ETC_LOCALTIME):/etc/localtime:ro \
-		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		-e DISPLAY=$(DISPLAY) \
-		$(USER_IMG) $(EXEC)
-
-
 .PHONY: run_checks
 run_checks:
 ifeq ($(shell id -u),0)
@@ -254,8 +183,6 @@ ifeq ($(shell id -u),0)
 	@echo "    sudo su -c usermod -aG docker your_username"
 	@exit 1
 endif
-
-	scripts/utils/check_for_old_docker_imgs.sh
 
 
 .PHONY: build_user
@@ -285,26 +212,39 @@ build_user_maaxboard: build_user
 build_user_l4v: USER_BASE_IMG = $(L4V_IMG)
 build_user_l4v: build_user
 
-.PHONY: clean_isabelle
-clean_isabelle:
-	$(DOCKER) volume rm $(DOCKER_VOLUME_ISABELLE)
+.PHONY: clean_home_data
+clean_home_data:
+	-$(DOCKER) volume rm $(DOCKER_VOLUME_HOME)
 
-.PHONY: clean_home_dir
-clean_home_dir:
-	$(DOCKER) volume rm $(DOCKER_VOLUME_HOME)
+.PHONY: clean_all_datas
+clean_all_datas: clean_home_data
 
-.PHONY: clean_data
-clean_data: clean_isabelle clean_home_dir
-
-.PHONY: clean_images
-clean_images:
+.PHONY: clean_user_image
+clean_user_image:
 	-$(DOCKER) rmi $(USER_IMG)
-	-$(DOCKER) rmi extras
-	-$(DOCKER) rmi $(DOCKERHUB)$(L4V_IMG)
-	-$(DOCKER) rmi $(DOCKERHUB)$(MAAXBOARD_IMG)
-	-$(DOCKER) rmi $(DOCKERHUB)$(MICROKIT_IMG)
-	-$(DOCKER) rmi $(DOCKERHUB)$(CAMKES_IMG)
-	-$(DOCKER) rmi $(DOCKERHUB)$(SEL4_IMG)
 
-.PHONY: clean
-clean: clean_data clean_images
+.PHONY: clean_extras_image
+clean_extras_image:
+	-$(DOCKER) rmi $(EXTRAS_IMG)
+
+.PHONY: clean_sel4_image
+clean_sel4_image:
+	-$(DOCKER) rmi $(SEL4_IMG)
+
+.PHONY: clean_camkes_image
+clean_camkes_image:
+	-$(DOCKER) rmi $(CAMKES_IMG)
+
+.PHONY: clean_microkit_image
+clean_microkit_image:
+	-$(DOCKER) rmi $(MICROKIT_IMG)
+
+.PHONY: clean_maaxboard_image
+clean_maaxboard_image:
+	-$(DOCKER) rmi $(MAAXBOARD_IMG)
+
+.PHONY: clean_all_images
+clean_all_images: clean_user_image clean_extras_image clean_sel4_image clean_camkes_image clean_microkit_image clean_maaxboard_image
+
+.PHONY: clean_all
+clean_all: clean_all_datas clean_all_images

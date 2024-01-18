@@ -21,7 +21,6 @@ set -ef
 : "${CAMKES_IMG:=camkes}"
 : "${MICROKIT_IMG:=microkit}"
 : "${MAAXBOARD_IMG:=maaxboard}"
-: "${L4V_IMG:=l4v}"
 
 # Allow override of which 'version' (aka tag) of an image to pull in
 : "${IMG_POSTFIX:=:latest}"
@@ -29,24 +28,12 @@ set -ef
 # Dockerfile directory location
 : "${DOCKERFILE_DIR:=dockerfiles}"
 
-# For images that are prebuilt
-: "${PREBUILT_CAKEML_IMG:=prebuilt_cakeml}"
-: "${PREBUILT_SYSINIT_IMG:=prebuilt_sysinit}"
-
 # Extra vars
 DOCKER_BUILD="docker build"
 DOCKER_FLAGS="--force-rm=true"
 
 # Special variables to be passed through Docker to the build scripts
 : "${SCM}"
-
-
-###########################
-# For 'prebuilt' images, the idea is that for things that take a long
-# time to build, and don't change very much, we should build them
-# once, and then pull them in as needed.
-# TODO: make this work better..
-: "${CAKEML_BASE_DATE:=2019_01_13}"
 
 
 ############################################
@@ -102,7 +89,6 @@ apply_software_to_image()
         "$@" \
         .
 }
-############################################
 
 ############################################
 # Recipes for standard images
@@ -131,74 +117,23 @@ build_maaxboard()
     build_image "$MICROKIT_IMG$IMG_POSTFIX" maaxboard.Dockerfile "$MAAXBOARD_IMG"
 }
 
-build_l4v()
-{
-    build_image "$CAMKES_IMG$IMG_POSTFIX" l4v.Dockerfile "$L4V_IMG"
-}
-
-############################################
-# Build prebuildable images
-
-prebuild_warning()
-{
-    cat <<EOF
-You have asked to build a 'prebuilt' image for $img_to_build.
-If you just want to use the $img_to_build compilers, rather
-than rebuilt the toolchain itself, use:
-    build.sh -b sel4 -s $img_to_build
-It will be much faster! Waiting for 10 seconds incase you
-change your mind
-EOF
-    sleep 10
-}
-
-build_cakeml()
-{
-    prebuild_warning >&2
-    build_image "$CAMKES_IMG$IMG_POSTFIX" cakeml.Dockerfile "$PREBUILT_CAKEML_IMG"
-}
-
-build_sysinit()
-{
-    prebuild_warning >&2
-    build_image "$CAMKES_IMG$IMG_POSTFIX" sysinit.Dockerfile "$PREBUILT_SYSINIT_IMG"
-}
-
-
 ############################################
 # Argparsing
 
 show_help()
 {
-    # TODO:
-    # - learn best way to represent that -s can be supplied multiple times
-    available_software=$(cd "$DOCKERFILE_DIR"; find . -name 'apply-*.Dockerfile' \
-                            | sed 's/.Dockerfile//;s@./apply-@@' \
-                            | sort \
-                            | tr "\n" "|")
     cat <<EOF
-    build.sh [-r] [-v] [-p] -b [sel4|camkes|microkit|maaxboard|l4v] -s [$available_software] -s ... -e MAKE_CACHES=no -e ...
+    build.sh [-r] [-v] -b [sel4|camkes|microkit|maaxboard] -e MAKE_CACHES=no -e ...
 
      -r     Rebuild docker images (don't use the docker cache)
      -v     Verbose mode
-     -s     Software packages to install on top of the base image. Use -s for each package.
      -e     Build arguments (NAME=VALUE) to docker build. Use a -e for each build arg.
-     -p     Pull base image first. Rather than build the base image, get it from the web first.
-
-    Sneaky hints:
-     - To build 'prebuilt' images, you can run:
-           build.sh -b [riscv|cakeml]
-       but it will take a while!
-     - You can actually run this with '-b sel4-rust', or any other existing image,
-       but it will ruin the sorting of the name.
 EOF
 
 }
 
 # init cmdline vars to nothing
 img_to_build=
-software_to_apply=
-pull_base_first=
 
 while getopts "h?pvb:rs:e:" opt
 do
@@ -211,11 +146,7 @@ do
         ;;
     b)  img_to_build=$OPTARG
         ;;
-    p)  pull_base_first=y
-        ;;
     r)  DOCKER_FLAGS="$DOCKER_FLAGS --no-cache"
-        ;;
-    s)  software_to_apply="$software_to_apply $OPTARG"
         ;;
     e)  build_args="$build_args\n$OPTARG"
         ;;
@@ -232,34 +163,8 @@ then
     exit 1
 fi
 
-
-
 ############################################
 # Processing
 
-if [ -z "$pull_base_first" ]
-then
-    # If we don't want to pull the base image from Dockerhub, build it
-    "build_${img_to_build}"
-else
-    docker pull "$DOCKERHUB$img_to_build$IMG_POSTFIX"
-fi
-
-# get a unique, sorted, space seperated list of software to apply.
-softwares=$(echo "$software_to_apply" | tr ' ' '\n' | sort -u | tr '\n' ' ')
-
-base_img="$img_to_build"
-base_img_postfix="$IMG_POSTFIX"
-for s in $softwares
-do
-    echo "$s to install!"
-    if test -f "$DOCKERFILE_DIR/apply-${s}.Dockerfile"; then
-        # Try to resolve if we have a prebuilt image for the software being asked for.
-        # If not, <shrug />, docker won't pick up the variable anyway, so no harm done.
-        prebuilt_img="$(echo "PREBUILT_${s}_IMG" | tr "[:lower:]" "[:upper:]")"
-        prebuilt_img="$(eval echo \$"$prebuilt_img")"
-        apply_software_to_image "$prebuilt_img" "apply-${s}.Dockerfile" "$base_img$base_img_postfix" "$base_img-$s"
-        base_img="$base_img-$s"
-        base_img_postfix="" # only apply the postfix in the first loop
-    fi
-done
+# Build as requested.
+"build_${img_to_build}"
