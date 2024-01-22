@@ -92,3 +92,17 @@ possibly_toggle_apt_snapshot() {
         as_root apt-get update -q
     fi
 }
+
+adopt_default() {
+    as_root cp /etc/apt/sources.list.default /etc/apt/sources.list
+    as_root cp /etc/apt/80snapshot.default /etc/apt/apt.conf.d/80snapshot
+    as_root apt-get update -q
+}
+
+adopt_snapshot() {
+    as_root cp /etc/apt/sources.list.snapshot /etc/apt/sources.list
+    as_root cp /etc/apt/80snapshot.snapshot /etc/apt/apt.conf.d/80snapshot
+    as_root apt-get update -q
+}
+
+
