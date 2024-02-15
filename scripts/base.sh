@@ -2,16 +2,13 @@
 
 set -exuo pipefail
 
-# Source common functions.
-source "/tmp/utils/common.sh"
-
 # Fix the snapshot date.
 SNAPSHOT_DATE="20211208T025308Z"
 
 # Retain default, and create snapshot.
 # May subsequently select the one desired.
-as_root cp /etc/apt/sources.list /etc/apt/sources.list.default
-as_root tee /etc/apt/sources.list.snapshot << EOF
+mv /etc/apt/sources.list /etc/apt/sources.list.default
+tee /etc/apt/sources.list.snapshot << EOF
 deb http://snapshot.debian.org/archive/debian/$SNAPSHOT_DATE/ bullseye main
 deb http://snapshot.debian.org/archive/debian-security/$SNAPSHOT_DATE/ bullseye-security main
 deb http://snapshot.debian.org/archive/debian/$SNAPSHOT_DATE/ bullseye-updates main
@@ -19,30 +16,38 @@ EOF
 
 # Snapshot has some rate limiting, so avoid its ire.
 # Also avoid refusal to use updates from snapshot.
-as_root tee /etc/apt/80snapshot.default << EOF
+tee /etc/apt/80snapshot.default << EOF
 # Empty.
 EOF
-as_root tee -a /etc/apt/80snapshot.snapshot << EOF
+tee -a /etc/apt/80snapshot.snapshot << EOF
 Acquire::Retries "5";
 Acquire::http::Dl-Limit "1000";
 Acquire::Check-Valid-Until false;
 EOF
 
 # These commands supposedly speed-up and better dockerize apt.
-echo "force-unsafe-io" | as_root tee /etc/dpkg/dpkg.cfg.d/02apt-speedup > /dev/null
-echo "Acquire::http {No-Cache=True;};" | as_root tee /etc/apt/apt.conf.d/no-cache > /dev/null
+echo "force-unsafe-io" | tee /etc/dpkg/dpkg.cfg.d/02apt-speedup > /dev/null
+echo "Acquire::http {No-Cache=True;};" | tee /etc/apt/apt.conf.d/no-cache > /dev/null
 
 # Adopt snapshot.
-# Unsure when to avoid snapshot.
-adopt_snapshot
+cp /etc/apt/sources.list.snapshot /etc/apt/sources.list
+cp /etc/apt/80snapshot.snapshot /etc/apt/apt.conf.d/80snapshot
+apt-get update -q
 
-# Get wget and curl early.
-as_root apt-get install -y --no-install-recommends \
+# Get core building services early.
+apt-get install -y --no-install-recommends \
         curl \
+        ssh \
         wget \
         # end of list
 
-as_root apt-get install -y --no-install-recommends \
+# Populate ssh hosts.
+mkdir -p "/root/.ssh"
+chmod u=rwx,g=,o= "/root/.ssh"
+ssh-keyscan github.com >> "/root/.ssh/known_hosts"
+
+# And more conventional dependencies.
+apt-get install -y --no-install-recommends \
         bc \
         ca-certificates \
         devscripts \
@@ -56,7 +61,6 @@ as_root apt-get install -y --no-install-recommends \
         python-is-python3 \
         python3-dev \
         python3-pip \
-        ssh \
         sudo \
         traceroute \
         # end of list
@@ -64,21 +68,21 @@ as_root apt-get install -y --no-install-recommends \
 # Install python dependencies
 # Upgrade pip first, then install setuptools (required for other pip packages)
 # Install some basic python tools
-as_root pip3 install --no-cache-dir \
+pip3 install --no-cache-dir \
     setuptools
-as_root pip3 install --no-cache-dir \
+pip3 install --no-cache-dir \
     gitlint \
     nose \
     reuse \
     # end of list
 
 # Add some symlinks so some programs can find things
-as_root ln -s /usr/bin/hg /usr/local/bin/hg
+ln -s /usr/bin/hg /usr/local/bin/hg
 
 # Skeleton for common user material.
-try_nonroot_first mkdir -p "/util" || chown_dir_to_user "/util"
-try_nonroot_first mkdir -p "/util/repo" || chown_dir_to_user "/util/repo"
-try_nonroot_first mkdir -p "/util/curl_home" || chown_dir_to_user "/util/curl_home"
+mkdir -p "/util"
+mkdir -p "/util/repo"
+mkdir -p "/util/curl_home"
 
 # Install repo.
 wget -O - "https://storage.googleapis.com/git-repo-downloads/repo" > "/util/repo/repo"
@@ -119,6 +123,7 @@ cat << 'EOF' >> "/etc/profile.d/500-greeting.sh"
 : "${STAMP_CAMKES:=absent}"
 : "${STAMP_MICROKIT:=absent}"
 : "${STAMP_MAAXBOARD:=absent}"
+: "${STAMP_SDK:=absent}"
 echo "============================================================"
 echo "Capgemini seL4"
 echo "Organisation: https://github.com/sel4-cap"
@@ -132,5 +137,6 @@ echo "STAMP_SEL4:      ${STAMP_SEL4}"
 echo "STAMP_CAMKES:    ${STAMP_CAMKES}"
 echo "STAMP_MICROKIT:  ${STAMP_MICROKIT}"
 echo "STAMP_MAAXBOARD: ${STAMP_MAAXBOARD}"
+echo "STAMP_SDK:       ${STAMP_SDK}"
 echo "============================================================"
 EOF

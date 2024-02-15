@@ -1,9 +1,9 @@
-ARG BASE_IMG=ghcr.io/sel4-cap/sel4
+ARG BASE_IMG=ghcr.io/sel4-cap/maaxboard
 FROM $BASE_IMG
 LABEL ORGANISATION="https://github.com/sel4-cap"
 LABEL MAINTAINER="https://github.com/Bill-James-Ellis"
 
-ARG SCRIPT=camkes.sh
+ARG SCRIPT=sdk.sh
 
 # Run the paired script.
 ARG STAMP
@@ -13,4 +13,4 @@ RUN --mount=type=ssh /bin/bash /tmp/${SCRIPT} \
     && apt-get autoremove --purge --yes 
 
 # ENV variables persit in container.
-ENV STAMP_CAMKES="CAMKES:${STAMP}"
+ENV STAMP_MAAXBOARD="MAAXBOARD:${STAMP}"

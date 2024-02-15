@@ -2,8 +2,10 @@
 
 set -exuo pipefail
 
-# Source common functions.
-source "/tmp/utils/common.sh"
+
+# BJE: Hmm. What is all this really doing? And, perhaps, can we just do docker
+# USER for most of that?  Shall persit for now, as part of the itterative dig
+# on this.
 
 # Setup user and groups for inside the container
 
@@ -45,9 +47,9 @@ fi
 passwd -d "${USERNAME}"
 
 # Set up locales.
-echo "${LOCAL_LANG} UTF-8" | as_root tee /etc/locale.gen > /dev/null
-as_root dpkg-reconfigure --frontend=noninteractive locales
-echo "LANG=${LOCAL_LANG}" | as_root tee -a /etc/default/locale > /dev/null
+echo "${LOCAL_LANG} UTF-8" | tee /etc/locale.gen > /dev/null
+dpkg-reconfigure --frontend=noninteractive locales
+echo "LANG=${LOCAL_LANG}" | tee -a /etc/default/locale > /dev/null
 
 # Select locale.
 cat << EOF >> "/etc/profile.d/010-locale.sh"

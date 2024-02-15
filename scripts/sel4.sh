@@ -2,14 +2,11 @@
 
 set -exuo pipefail
 
-# Source common functions.
-. "/tmp/utils/common.sh"
-
 # Add additional architectures for cross-compiled libraries.
 # Install the tools required to compile seL4.
-as_root dpkg --add-architecture armhf
-as_root dpkg --add-architecture armel
-as_root apt-get install -y --no-install-recommends \
+dpkg --add-architecture armhf
+dpkg --add-architecture armel
+apt-get install -y --no-install-recommends \
     astyle=3.1-2+b1 \
     build-essential \
     ccache \
@@ -45,12 +42,12 @@ as_root apt-get install -y --no-install-recommends \
     gcc-riscv64-unknown-elf \
     libclang-11-dev \
     qemu-system-arm \
-    qemu-system-misc
+    qemu-system-misc \
     # end of list
 
-# Hmm. What is all this really doing? BJE
-# Hmm. What is all this really doing? BJE
-# Hmm. What is all this really doing? BJE
+# BJE: Hmm. What is all this really doing?
+# Too much is likely less annoying, than too little. It seems possible to
+# incrementally pick away at the stack, and sharpen those dependencies.
 
 compiler_version=10
 
@@ -64,8 +61,8 @@ for compiler in gcc \
     for file in $(dpkg-query -L ${compiler} | grep /usr/bin/); do
         name=$(basename "$file")
         echo "$name - $file"
-        as_root update-alternatives --install "$file" "$name" "$file-$compiler_version" 50 || :  # don't stress if it doesn't work
-        as_root update-alternatives --auto "$name" || :
+        update-alternatives --install "$file" "$name" "$file-$compiler_version" 50 || :  # don't stress if it doesn't work
+        update-alternatives --auto "$name" || :
     done
 done
 
@@ -87,19 +84,19 @@ do
         link=$(echo "$file" | sed "s/-${compiler_version}\$//g")
         echo "$name - $file"
         (
-            as_root update-alternatives --install "${link}" "${name}" "${file}" 60 && \
-            as_root update-alternatives --auto "${name}"
+            update-alternatives --install "${link}" "${name}" "${file}" 60 && \
+            update-alternatives --auto "${name}"
         ) || : # Don't worry if this fails
     done
 done
 
-# Ensure that clang-11 shows up as clang
+# Ensure that clang-11 shows up as clang.
 for compiler in clang \
                 clang++ \
                 # end of list
     do
-        as_root update-alternatives --install /usr/bin/"$compiler" "$compiler" "$(which "$compiler"-11)" 60 && \
-        as_root update-alternatives --auto "$compiler"
+        update-alternatives --install /usr/bin/"$compiler" "$compiler" "$(which "$compiler"-11)" 60 && \
+        update-alternatives --auto "$compiler"
 done
 # Do a quick check to make sure it works:
 clang --version
@@ -107,9 +104,9 @@ clang --version
 # Get seL4 python3 deps
 # Pylint is for checking included python scripts
 # Setuptools sometimes is a bit flaky, so double checking it is installed here
-as_root pip3 install --no-cache-dir \
+pip3 install --no-cache-dir \
     setuptools
-as_root pip3 install --no-cache-dir \
+pip3 install --no-cache-dir \
     pylint \
-    sel4-deps
+    sel4-deps \
     # end of list

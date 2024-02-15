@@ -12,7 +12,6 @@ USERNAME := $(shell whoami)
 USER_IMG := user_img-${USERNAME}
 HOST_DIR ?= undefined
 HOME_DIR ?= undefined
-ROOTDOTSSH_DIR = undefined
 STAMP := $(shell date)
 
 ETC_LOCALTIME := $(realpath /etc/localtime)
@@ -35,7 +34,7 @@ usage:
 	@echo "clean (removes <image>)"
 	@echo ""
 	@echo "<image> is one off:"
-	@echo "base|sel4|camkes|microkit|maaxboard"
+	@echo "base|sel4|camkes|microkit|maaxboard|sdk"
 	@echo ""
 	@echo "<OPTIONS> is one or more off:"
 	@echo "HOST_DIR=<path> (mapped as: /host)"
@@ -61,13 +60,14 @@ endif
 .PHONY: build
 build: run_checks
 build:
-	docker build \
-	    --rm \
-            --force-rm \
-	    --build-arg STAMP="${STAMP}" \
-            -f "dockerfiles/${IMAGE}.Dockerfile" \
-            -t "${DOCKERHUB}/${IMAGE}" \
-            .
+	ssh-agent bash -c "ssh-add ; \
+	                   docker build \
+                               --ssh default\
+                                --rm\
+                                --force-rm\
+                                --build-arg STAMP='${STAMP}'\
+                                -f 'dockerfiles/${IMAGE}.Dockerfile'\
+                                -t '${DOCKERHUB}/${IMAGE}' ."
 
 ################################################
 # Use images.

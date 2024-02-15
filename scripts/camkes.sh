@@ -2,13 +2,19 @@
 
 set -exuo pipefail
 
-# Source common functions.
-source "/tmp/utils/common.sh"
 
-# Get dependencies
-as_root dpkg --add-architecture i386
-as_root apt-get update -q
-as_root apt-get install -y --no-install-recommends \
+# BJE: Hmm. Is this needed?
+# What is the goal platform here: Microkit? UBOOT? Maaxboard? Really, it's the
+# bits and bobs we use to develop, and a camkes context is historically
+# slightly assumed. Too much is likely less annoying, than too little. It
+# seems possible to incrementally pick away at the stack, and sharpen those
+# dependencies. 
+# BJE: Hmm. Is this needed?
+
+# Get dependencies.
+dpkg --add-architecture i386
+apt-get update -q
+apt-get install -y --no-install-recommends \
     acl \
     fakeroot \
     linux-libc-dev-i386-cross \
@@ -18,8 +24,8 @@ as_root apt-get install -y --no-install-recommends \
     lib32stdc++-10-dev \
     # end of list
 
-# Required for testing
-as_root apt-get install -y --no-install-recommends \
+# Required for testing.
+apt-get install -y --no-install-recommends \
     gdb \
     libssl-dev \
     libcunit1-dev \
@@ -28,13 +34,13 @@ as_root apt-get install -y --no-install-recommends \
     libgmp3-dev \
     # end of list
 
-# Required for stack to use tcp properly
-as_root apt-get install -y --no-install-recommends \
+# Required for stack to use tcp properly.
+apt-get install -y --no-install-recommends \
     netbase \
     # end of list
 
-# Required for rumprun
-as_root apt-get install -y --no-install-recommends \
+# Required for rumprun.
+apt-get install -y --no-install-recommends \
     dh-autoreconf \
     genisoimage \
     gettext \
@@ -42,8 +48,8 @@ as_root apt-get install -y --no-install-recommends \
     xxd \
     # end of list
 
-# Get python deps for CAmkES
-as_root pip3 install --no-cache-dir \
+# Get python deps for CAmkES.
+pip3 install --no-cache-dir \
     camkes-deps \
     nose \
     # end of list

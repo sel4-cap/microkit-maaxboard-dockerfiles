@@ -2,23 +2,30 @@
 
 set -exuo pipefail
 
-# Source common functions.
-source "/tmp/utils/common.sh"
-
-# Extras for the MaaXBoard build environment, e.g. to build u-boot
-as_root apt-get install -y --no-install-recommends \
+# Extras for the MaaXBoard build environment, e.g. to build u-boot.
+apt-get install -y --no-install-recommends \
     gcc-aarch64-linux-gnu \
     g++-aarch64-linux-gnu \
     gcc-arm-linux-gnueabihf \
     g++-arm-linux-gnueabihf \
     gcc-arm-linux-gnueabi \
     g++-arm-linux-gnueabi \
-    sudo \
     cowsay \
     bison \
     flex \
     python-dev \
     # end of list
+
+# BJE: Hmm. 
+# Due to layers approach, we keep bits around. There is the potential to
+# streamline though. Unsure we need any of those Python2 bits. Also, given the
+# layers, some of that may be present already. In general, value perhaps in
+# incrementally picking away at the stack, and sharpen those dependencies.
+# But, also, it is not too problamatic to have bits here that we don't use.
+# This is knowinigly a work in progress, and geared to support work in
+# progress.
+
+# Keep these bits here as comments for future consideration:
 
 ## Remove tools and architectures not required by the MaaXBoard. This
 ## reduces the size of the resulting Docker image.
