@@ -18,6 +18,8 @@ git reset --hard "7008430d4432c71a74b2a1da0afae58f7a8658df"
 # Acquire microkit.
 cd "/tmp/build"
 git clone --branch "main" "git@github.com:seL4/microkit.git" microkit
+cd "/tmp/build/microkit"
+git reset --hard "e04afe55ac7f3d4242145fd7466b583fe1b1fce3"
 
 # Achieve Python requirements.
 cd "/tmp/build"

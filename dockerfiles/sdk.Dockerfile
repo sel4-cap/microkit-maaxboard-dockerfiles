@@ -13,4 +13,4 @@ RUN --mount=type=ssh /bin/bash /tmp/${SCRIPT} \
     && apt-get autoremove --purge --yes 
 
 # ENV variables persit in container.
-ENV STAMP_MAAXBOARD="MAAXBOARD:${STAMP}"
+ENV STAMP_SDK="MAAXBOARD:${STAMP}"
