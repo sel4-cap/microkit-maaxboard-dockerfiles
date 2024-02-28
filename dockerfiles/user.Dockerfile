@@ -1,20 +1,23 @@
-#
-# Copyright 2020, Data61/CSIRO
-#
-# SPDX-License-Identifier: BSD-2-Clause
-#
-
 ARG USER_BASE_IMG
-# hadolint ignore=DL3006
 FROM $USER_BASE_IMG
 
-# Get user UID and username
-ARG USERNAME
 ARG UID
+ARG USER_NAME
 ARG GID
-ARG GROUP
+ARG GROUP_NAME
 ARG LOCAL_LANG
 
-COPY scripts/user.sh /tmp/
+# Prepare for invoking user.
+RUN groupadd -g "${GID}" "${GROUP_NAME}"
+RUN useradd -u "${UID}" -g "${GID}" "${USER_NAME}"
+RUN passwd -d "${USER_NAME}"
+RUN usermod -aG sudo "${USER_NAME}"
 
-RUN /bin/bash /tmp/user.sh
+ARG SCRIPT=user.sh
+
+# Run the paired script.
+COPY scripts/${SCRIPT} /tmp/${SCRIPT}
+RUN --mount=type=ssh /bin/bash /tmp/${SCRIPT}
+
+# Become invoking user.
+USER "${USER_NAME}"

@@ -15,9 +15,7 @@ HOME_DIR ?= undefined
 STAMP := $(shell date)
 
 ETC_LOCALTIME := $(realpath /etc/localtime)
-
-# User in the container.
-EXTRA_DOCKER_RUN_ARGS := -u $(shell id -u):$(shell id -g)
+EXTRA_DOCKER_RUN_ARGS :=
 
 ################################################
 # Default to showing usage.
@@ -34,7 +32,7 @@ usage:
 	@echo "clean (removes <image>)"
 	@echo ""
 	@echo "<image> is one off:"
-	@echo "base|sel4|camkes|microkit|maaxboard|sdk"
+	@echo "base|sel4|cap|sdk"
 	@echo ""
 	@echo "<OPTIONS> is one or more off:"
 	@echo "HOST_DIR=<path> (mapped as: /host)"
@@ -90,25 +88,24 @@ prepare_user:
 	docker build \
 	    --rm \
 	    --force-rm \
-	    --build-arg=USER_BASE_IMG=${DOCKERHUB}/${IMAGE} \
-	    --build-arg=USERNAME=${USERNAME} \
-	    --build-arg=UID=$(shell id -u) \
-	    --build-arg=GID=$(shell id -g) \
-	    --build-arg=GROUP=$(shell id -gn) \
-	    --build-arg=LOCAL_LANG=$(LANG) \
+	    --build-arg=USER_BASE_IMG="${DOCKERHUB}/${IMAGE}" \
+	    --build-arg=UID="$(shell id -u)" \
+	    --build-arg=USER_NAME="$(shell id -un)" \
+	    --build-arg=GID="$(shell id -g)" \
+	    --build-arg=GROUP_NAME="$(shell id -gn)" \
+	    --build-arg=LOCAL_LANG="$(LANG)" \
 	    -f dockerfiles/user.Dockerfile \
 	    -t ${USER_IMG} .
 
 .PHONY: launch_user
 launch_user:
-	docker run \
+	-docker run \
 	    --rm \
 	    --interactive --tty \
-	    --hostname container-$(IMAGE) \
-	    --group-add sudo \
+	    --hostname "container-$(IMAGE)" \
 	    $(EXTRA_DOCKER_RUN_ARGS) \
 	    --mount type=bind,source="${ETC_LOCALTIME}",target="/etc/localtime,readonly" \
-	    ${USER_IMG} bash --login
+	    ${USER_IMG} /bin/bash --login
 
 ################################################
 # Pull images.

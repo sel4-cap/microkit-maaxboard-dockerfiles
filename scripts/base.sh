@@ -34,52 +34,45 @@ cp /etc/apt/sources.list.snapshot /etc/apt/sources.list
 cp /etc/apt/80snapshot.snapshot /etc/apt/apt.conf.d/80snapshot
 apt-get update -q
 
-# Get core building services early.
+# Add conventional dependencies.
+DEBIAN_FRONTEND=noninteractive
 apt-get install -y --no-install-recommends \
-        curl \
-        ssh \
-        wget \
-        # end of list
+    apt-file \
+    apt-utils \
+    bc \
+    ca-certificates \
+    coreutils \
+    curl \
+    devscripts \
+    expect \
+    git \
+    iproute2 \
+    iputils-ping \
+    jq \
+    locales \
+    make \
+    pylint3 \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-protobuf \
+    python3-setuptools \
+    python3-venv \
+    python-is-python3 \
+    ssh \
+    sudo \
+    traceroute \
+    vim \
+    wget \
+    xxd \
+    # end of list
 
 # Populate ssh hosts.
 mkdir -p "/root/.ssh"
 chmod u=rwx,g=,o= "/root/.ssh"
 ssh-keyscan github.com >> "/root/.ssh/known_hosts"
 
-# And more conventional dependencies.
-apt-get install -y --no-install-recommends \
-        bc \
-        ca-certificates \
-        devscripts \
-        expect \
-        git \
-        iproute2 \
-        iputils-ping \
-        jq \
-        locales \
-        make \
-        python-is-python3 \
-        python3-dev \
-        python3-pip \
-        sudo \
-        traceroute \
-        # end of list
-
-# Install python dependencies
-# Upgrade pip first, then install setuptools (required for other pip packages)
-# Install some basic python tools
-pip3 install --no-cache-dir \
-    setuptools
-pip3 install --no-cache-dir \
-    gitlint \
-    nose \
-    reuse \
-    # end of list
-
-# Add some symlinks so some programs can find things
-ln -s /usr/bin/hg /usr/local/bin/hg
-
-# Skeleton for common user material.
+# Skeleton for utility material.
 mkdir -p "/util"
 mkdir -p "/util/repo"
 mkdir -p "/util/curl_home"
@@ -120,9 +113,7 @@ EOF
 cat << 'EOF' >> "/etc/profile.d/500-greeting.sh"
 : "${STAMP_BASE:=absent}"
 : "${STAMP_SEL4:=absent}"
-: "${STAMP_CAMKES:=absent}"
-: "${STAMP_MICROKIT:=absent}"
-: "${STAMP_MAAXBOARD:=absent}"
+: "${STAMP_CAP:=absent}"
 : "${STAMP_SDK:=absent}"
 echo "============================================================"
 echo "Capgemini seL4"
@@ -132,11 +123,13 @@ echo "Repository:   https://github.com/sel4-cap/microkit-maaxboard-dockerfiles"
 echo "Maintainer:   https://github.com/Bill-James-Ellis"
 echo ""
 echo "Stamps:"
-echo "STAMP_BASE:      ${STAMP_BASE}"
-echo "STAMP_SEL4:      ${STAMP_SEL4}"
-echo "STAMP_CAMKES:    ${STAMP_CAMKES}"
-echo "STAMP_MICROKIT:  ${STAMP_MICROKIT}"
-echo "STAMP_MAAXBOARD: ${STAMP_MAAXBOARD}"
-echo "STAMP_SDK:       ${STAMP_SDK}"
+echo "STAMP_BASE: ${STAMP_BASE}"
+echo "STAMP_SEL4: ${STAMP_SEL4}"
+echo "STAMP_CAP:  ${STAMP_CAP}"
+echo "STAMP_SDK:  ${STAMP_SDK}"
 echo "============================================================"
 EOF
+
+# Clean up.
+apt-get clean autoclean
+apt-get autoremove --purge --yes 

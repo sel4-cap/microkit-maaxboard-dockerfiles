@@ -8,9 +8,7 @@ ARG SCRIPT=sel4.sh
 # Run the paired script.
 ARG STAMP
 COPY scripts/${SCRIPT} /tmp/${SCRIPT}
-RUN --mount=type=ssh /bin/bash /tmp/${SCRIPT} \
-    && apt-get clean autoclean \
-    && apt-get autoremove --purge --yes 
+RUN --mount=type=ssh /bin/bash /tmp/${SCRIPT}
 
 # ENV variables persit in container.
 ENV STAMP_SEL4="SEL4:${STAMP}"
