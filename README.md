@@ -1,7 +1,17 @@
-# Microkit Dockerfiles
+# seL4 Cap Dockerfiles
 
 Usage:
-* make
+* `make`
+
+Most normal usage sessions will begin:
+* `make user IMAGE=sdk HOST_DIR=~/WORK HOME_DIR=~/`
+
+# Instructions
+
+Instructions are small scripts, used to build an external dependency Package,
+in a configured and controlled manner. Each Instruction is built for the SDK.
+The Instructions building log is retained in the container as:
+`/tmp/instructions.log.txt`
 
 # Git Hub Packages
 
@@ -31,6 +41,12 @@ registry service at ghcr.io. Mostly, do this:
 The command shall create the following in your HOME area
 ".docker/config.json", containing credentials related to the "personal access
 token (classic)" which permit you access to our packages.
+
+# Update
+
+For a full update:
+* `make build IMAGE=base ; make build IMAGE=sel4 ; make build IMAGE=cap ; make build IMAGE=sdk`
+* `make push IMAGE=base ; make push IMAGE=sel4 ; make push IMAGE=cap ; make push IMAGE=sdk`
 
 # Docker
 
