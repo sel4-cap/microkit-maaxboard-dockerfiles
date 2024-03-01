@@ -34,12 +34,13 @@ token (classic)" which permit you access to our packages.
 
 # Docker
 
+Some handy Docker commands.
+
 List images:
-* docker images --all --no-trunc
+* `docker images --all --no-trunc`
 
 Delete image:
-* docker image remove IMAGE_ID
+* `docker image remove IMAGE_ID`
 
-
-
-
+Delete all "<none>" images:
+* `docker images --all --no-trunc | grep "<none>" | sed -E -e 's/^.*(sha256:[^ ]*) .*$/\1/g' |  xargs -I {} docker image remove {}`

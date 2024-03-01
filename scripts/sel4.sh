@@ -17,6 +17,9 @@ apt-get install -y --no-install-recommends \
     cmake \
     cmake-curses-gui \
     cpio \
+    cpp-10-aarch64-linux-gnu \
+    cpp-10-arm-linux-gnueabi \
+    cpp-10-arm-linux-gnueabihf \
     device-tree-compiler \
     doxygen \
     g++-10 \
@@ -55,7 +58,23 @@ apt-get install -y --no-install-recommends \
 # the versioned command (x-10) is made available. To resolve, map the default
 # (x) to the versioned command (x-10). This is done very manually here, for
 # visibility of what is being (and not being) done.
+#
+# Handy commands for digging on these.
+#
+# What files does a package provide:
+# sudo apt-file update
+# apt-file show cpp-10-aarch64-linux-gnu
+# apt-file show cpp-10-aarch64-linux-gnu | grep '/usr/bin/'
+#
+# Which package provided this file:
+# dpkg -S /bin/ls
 
+# cpp-10-aarch64-linux-gnu
+update-alternatives --install /usr/bin/aarch64-linux-gnu-cpp          aarch64-linux-gnu-cpp             /usr/bin/aarch64-linux-gnu-cpp-10          555
+# cpp-10-arm-linux-gnueabi
+update-alternatives --install /usr/bin/arm-linux-gnueabi-cpp          arm-linux-gnueabi-cpp             /usr/bin/arm-linux-gnueabi-cpp-10          555
+# cpp-10-arm-linux-gnueabihf
+update-alternatives --install /usr/bin/arm-linux-gnueabihf-cpp        arm-linux-gnueabihf-cpp           /usr/bin/arm-linux-gnueabihf-cpp-10        555
 # Package: g++-10
 update-alternatives --install /usr/bin/g++                            g++                               /usr/bin/g++-10                            555
 update-alternatives --install /usr/bin/x86_64-linux-gnu-g++           x86_64-linux-gnu-g++              /usr/bin/x86_64-linux-gnu-g++-10           555

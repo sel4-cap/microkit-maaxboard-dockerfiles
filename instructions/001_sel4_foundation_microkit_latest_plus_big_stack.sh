@@ -2,17 +2,15 @@
 
 #========================================
 # Instructions
+#----------------------------------------
+# The sel4 foundation Microkit.
+# Latest revision. At point of build.
 #========================================
 set -exuo pipefail
 BUILD_PATH=$(realpath "$1")
 PACKAGE_PATH=$(realpath "$2")
 mkdir -p "${BUILD_PATH}"
 mkdir -p "${PACKAGE_PATH}"
-#========================================
-# Target:
-#----------------------------------------
-# The sel4 foundation Microkit.
-# Latest revision. At point of build.
 #========================================
 
 # Acquire seL4.
@@ -25,6 +23,14 @@ git reset --hard "7008430d4432c71a74b2a1da0afae58f7a8658df"
 cd "${BUILD_PATH}"
 git clone --branch "main" "git@github.com:seL4/microkit.git" microkit
 cd "${BUILD_PATH}/microkit"
+
+# Increase Stack Patch.
+cd "${BUILD_PATH}/microkit"
+sed -i libmicrokit/src/crt0.s -e 's/0xff0/0x3FFE/g'
+sed -i libmicrokit/src/main.c -e 's/_stack\[4096\]/_stack[16384]/g'
+
+# Report the delta, for capture in log.
+git diff
 
 # Achieve Python requirements.
 cd "${BUILD_PATH}"
@@ -41,6 +47,11 @@ export PATH="/util/sel4_foundation_arm_toolchain_baseline/gcc-arm-10.2-2020.11-x
 # The sel4 build scripts do not ensure this, when building as root.
 chmod a+x "${BUILD_PATH}/microkit/release/microkit-sdk-1.2.6/bin/microkit"
 
+# Build Maaxboard hello example.
+cd "${BUILD_PATH}/microkit/release/microkit-sdk-1.2.6/board/maaxboard/example/hello"
+mkdir -p "built"
+make BUILD_DIR="built" MICROKIT_SDK="${BUILD_PATH}/microkit/release/microkit-sdk-1.2.6" MICROKIT_BOARD="maaxboard" MICROKIT_CONFIG="debug"
+
 # Retain built release.
-mkdir -p "${PACKAGE_PATH}/microkit/sel4_foundation_latest/"
-cp -r "${BUILD_PATH}/microkit/release" "${PACKAGE_PATH}/microkit/sel4_foundation_latest/release"
+mkdir -p "${PACKAGE_PATH}/microkit/sel4_foundation_microkit_latest_plus_big_stack"
+cp -r "${BUILD_PATH}/microkit/release" "${PACKAGE_PATH}/microkit/sel4_foundation_microkit_latest_plus_big_stack/release"
