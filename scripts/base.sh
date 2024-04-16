@@ -59,6 +59,7 @@ apt-get install -y --no-install-recommends \
     python3-setuptools \
     python3-venv \
     python-is-python3 \
+    rsync \
     ssh \
     sudo \
     traceroute \

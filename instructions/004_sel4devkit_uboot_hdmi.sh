@@ -13,8 +13,6 @@ mkdir -p "${BUILD_PATH}"
 mkdir -p "${PACKAGE_PATH}"
 #========================================
 
-# Step 1:
-
 # Acquire maaxboard-uboot.
 cd "${BUILD_PATH}"
 git clone --branch "main" "git@github.com:sel4devkit/maaxboard-uboot.git" maaxboard-uboot
@@ -27,23 +25,15 @@ cd "${BUILD_PATH}/maaxboard-uboot"
 cd "${BUILD_PATH}/maaxboard-uboot/firmware"
 bash firmware-imx-8.14.bin --auto-accept
 
-# Build.
+# Patch for HDMI.
 cd "${BUILD_PATH}/maaxboard-uboot"
-./build-offline.sh
-
-# Step 2:
-# The Watchdog build is not completely successful. However, we only need a few
-# components to assemble our desired U-Boot. We implicitly use some of the
-# build residue from above to permit the Watchdog build. This is not ideal.
-
-# Patch in Watchdog.
-cd "${BUILD_PATH}/maaxboard-uboot"
-echo "CONFIG_IMX_WATCHDOG=y" >> "uboot-imx/configs/maaxboard_defconfig"
+sed -i -e '/# Copy the binaries, firmware and device tree/a cp firmware/firmware-imx-8.14/firmware/hdmi/cadence/signed_hdmi_imx8m.bin imx-mkimage/iMX8M/signed_hdmi_imx8m.bin' -e 's/SOC=iMX8MQ flash_ddr4_val_no_hdmi/SOC=iMX8MQ flash_ddr4_val/g' build-offline.sh
+git diff
 
 # Build.
 cd "${BUILD_PATH}/maaxboard-uboot"
 ./build-offline.sh
 
 # Retain.
-mkdir -p "${PACKAGE_PATH}/uboot/sel4devkit_uboot_watchdog"
-cp -r "${BUILD_PATH}/maaxboard-uboot/flash.bin" "${PACKAGE_PATH}/uboot/sel4devkit_uboot_watchdog/flash.bin"
+mkdir -p "${PACKAGE_PATH}/uboot/sel4devkit_uboot_hdmi"
+cp -r "${BUILD_PATH}/maaxboard-uboot/flash.bin" "${PACKAGE_PATH}/uboot/sel4devkit_uboot_hdmi/flash.bin"
