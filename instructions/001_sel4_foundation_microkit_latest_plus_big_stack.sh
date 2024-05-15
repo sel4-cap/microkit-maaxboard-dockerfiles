@@ -26,8 +26,8 @@ cd "${BUILD_PATH}/microkit"
 
 # Increase Stack Patch.
 cd "${BUILD_PATH}/microkit"
-sed -i libmicrokit/src/crt0.s -e 's/0xff0/0x3FFE/g'
-sed -i libmicrokit/src/main.c -e 's/_stack\[4096\]/_stack[16384]/g'
+sed -i libmicrokit/src/crt0.s -e 's/0xff0/0xFFFE/g' # 65536-2 = 0xFFFE
+sed -i libmicrokit/src/main.c -e 's/_stack\[4096\]/_stack[65536]/g'
 git diff
 
 # Achieve Python requirements.

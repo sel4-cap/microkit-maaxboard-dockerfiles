@@ -13,17 +13,23 @@ mkdir -p "${BUILD_PATH}"
 mkdir -p "${PACKAGE_PATH}"
 #========================================
 
-# Choose the latest of all dependencies. Mileage may vary.
+# Online SDK cites: microkit-sdk-dev-7c679ea-linux-x86-64.tar.gz This maps to
+# "7c679ea2df3603f81e4afdb36676bbaea0f265c8" on the "dev" branch of Ivan's
+# forked Microkit. We also also use Ivan's forked sel4 (at a specific, but
+# latest revision at time of preparing, of branch "microkit-dev"), as the
+# dependencies for the branched Microkit cite this.
 
 # Acquire seL4.
 cd "${BUILD_PATH}"
 git clone --branch "microkit-dev" "git@github.com:Ivan-Velickovic/seL4.git" sel4
+cd "${BUILD_PATH}/sel4"
+git reset --hard "b12f213930b45dd8563818d4f7c52ff36433b938"
 
 # Acquire microkit.
 cd "${BUILD_PATH}"
 git clone --branch "dev" "git@github.com:Ivan-Velickovic/microkit.git" microkit
 cd "${BUILD_PATH}/microkit"
-
+git reset --hard "7c679ea2df3603f81e4afdb36676bbaea0f265c8"
 
 # We amend the stack-hack-patch for Ivan's forked Microkit, which has a
 # different layout. We only patch for aarch64 (our target).
@@ -58,5 +64,5 @@ mkdir -p "built"
 make BUILD_DIR="built" MICROKIT_SDK="${BUILD_PATH}/microkit/release/microkit-sdk-1.2.6" MICROKIT_BOARD="maaxboard" MICROKIT_CONFIG="debug"
 
 # Retain built release.
-mkdir -p "${PACKAGE_PATH}/microkit/auts_microkit_latest_plus_big_stack"
-cp -r "${BUILD_PATH}/microkit/release" "${PACKAGE_PATH}/microkit/auts_microkit_latest_plus_big_stack/release"
+mkdir -p "${PACKAGE_PATH}/microkit/auts_microkit_stable_plus_big_stack"
+cp -r "${BUILD_PATH}/microkit/release" "${PACKAGE_PATH}/microkit/auts_microkit_stable_plus_big_stack/release"
